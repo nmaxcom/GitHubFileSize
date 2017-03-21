@@ -8,23 +8,31 @@
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
-
 (function(){
+    /****************
+     * Options:
+     ****************/
+    const DEBUG_MODE = true; // in production mode should be false
+    const SHOW_BYTES = false; // false: always KB, i.e. '>1 KB', true: i.e. '180 B' when less than 1 KB
+    /****************/
+
     // var textColor = '#6a737d'; // Default github style
     var textColor = '#888'; // dark github style
-    styleUp();
+    createStyles();
 
     var origXHROpen               = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function(){
         this.addEventListener('loadend', function(){
-            console.log('%cStart: ' + document.title, 'color:white;background-color:#20A6E8;padding:3px');
+            if(DEBUG_MODE) console.log('%cStart: ' + document.title, 'color:white;background-color:#20A6E8;padding:3px');
             tableCheckandGo();
         });
         origXHROpen.apply(this, arguments);
     };
 
-    var vars = {};
+    var vars = {}, response;
     tableCheckandGo();
+
+
     /**
      * Order of business:
      * - Detect table, if present, launch async API call and insert new blank cells
@@ -38,20 +46,22 @@
             if(setVars()){
                 var callPromise = callGitHub();
                 callPromise
-                    .then(function(response){
-                        console.info('GitHub call went through');
-                        console.info(response.responseText);
-                        console.info(insertBlankCells());
-                        console.info(fillTheBlanks(JSON.parse(response.responseText)));
+                    .then(function(resp){
+                        response = resp;
+                        if(DEBUG_MODE) console.info('GitHub call went through');
+                        if(DEBUG_MODE) console.info(resp.responseText);
+                        insertBlankCells();
+                        fillTheBlanks(JSON.parse(resp.responseText));
+                        recheckAndFix();
                     })
                     .catch(function(fail){
-                        console.error(fail);
+                        if(DEBUG_MODE) console.error(fail);
                     });
-            } else{
-                console.info('setVars() failed. Vars: ', vars);
+            } else {
+                if(DEBUG_MODE) console.info('setVars() failed. Vars: ', vars);
             }
-        } else{
-            console.info('No data table detected, nothing to do');
+        } else {
+            if(DEBUG_MODE) console.info('No data table detected, nothing to do');
         }
     }
 
@@ -90,13 +100,13 @@
      */
     function insertBlankCells(){
         var i, len;
-        var FileNameCells = document.querySelectorAll('tr[class="js-navigation-item"] > td.content');
-        for(i = 0, len = FileNameCells.length; i < len; i++){
+        var filenameCells = document.querySelectorAll('tr[class~="js-navigation-item"] > td.content');
+        for(i = 0, len = filenameCells.length; i < len; i++){
             var tmp       = document.createElement('td');
             tmp.className = 'filesize';
-            FileNameCells[i].parentNode.insertBefore(tmp, FileNameCells[i].nextSibling);
+            filenameCells[i].parentNode.insertBefore(tmp, filenameCells[i].nextSibling);
         }
-        return `Inserted ${i} cells`;
+        if(DEBUG_MODE) console.info(`Inserted ${i} cells`);
     }
 
     /**
@@ -114,28 +124,29 @@
         toploop:
             for(i = 0, len = JSONelements.length; i < len; i++){
                 for(var cellnum in nametds){
-                    if(nametds.hasOwnProperty(cellnum)){
-                        if(JSONelements[i].name === nametds[cellnum].innerHTML){
-                            if(JSONelements[i].type === 'file'){
-                                var sizeNumber  = (JSONelements[i].size / 1024).toFixed(0);
-                                //sizeNumber = sizeNumber < 1 ? '>1' : sizeNumber;
+                    if(nametds.hasOwnProperty(cellnum) && JSONelements[i].name === nametds[cellnum].innerHTML){
+                        if(JSONelements[i].type === 'file'){
+                            var sizeNumber = (JSONelements[i].size / 1024).toFixed(0);
+                            if(SHOW_BYTES){
                                 sizeNumber = sizeNumber < 1 ? JSONelements[i].size + ' B' : sizeNumber + ' KB';
-                                nametds[cellnum].parentNode.parentNode.nextSibling.innerHTML = sizeNumber;
+                            } else {
+                                sizeNumber = sizeNumber < 1 ? '>1 KB' : sizeNumber + ' KB';
                             }
-                            continue toploop;
+                            nametds[cellnum].parentNode.parentNode.nextSibling.innerHTML = sizeNumber;
                         }
+                        continue toploop;
                     }
                 }
             }
-        return `Filled ${i} of ${len} elements`;
-        // console.info('Dumping json y nodes:');
-        // console.log(JSONelements.forEach(function(e,i){console.log(JSONelements[i].name)}));
-        // console.log(nametds.forEach(function(e,i){console.log(nametds[i].innerHTML)}));
+        if(DEBUG_MODE) console.info(`Processed ${i} of ${len} elements`);
+        // if(DEBUG_MODE) console.info('Dumping json y nodes:');
+        // if(DEBUG_MODE) console.log(JSONelements.forEach(function(e,i){if(DEBUG_MODE) console.log(JSONelements[i].name)}));
+        // if(DEBUG_MODE) console.log(nametds.forEach(function(e,i){if(DEBUG_MODE) console.log(nametds[i].innerHTML)}));
 
 
     }
 
-    function styleUp(){
+    function createStyles(){
         var css   = 'td.filesize { color: ' + textColor + ';' +
                 'text-align: right;' +
                 'padding-right: 50px !important; }' +
@@ -146,7 +157,7 @@
         style.type = 'text/css';
         if(style.styleSheet){
             style.styleSheet.cssText = css;
-        } else{
+        } else {
             style.appendChild(document.createTextNode(css));
         }
 
@@ -177,8 +188,27 @@
          } */ else if(match2){
             vars        = {dir: match2[1], owner: match2[2], repo: match2[3]};
             vars.branch = document.querySelector('.branch-select-menu button span').innerHTML;
-        } else
-            console.log(getAPIurl());
+        } else if(DEBUG_MODE) console.log(getAPIurl());
         return 1;
+    }
+
+    /**
+     * Sometimes, even though data has been correctly recieved, the DOM doesn't play well
+     * for whatever reason. This function will quickly check if the data is indeed
+     * there and if it's not will repaint the data again with the original functions.
+     */
+    function recheckAndFix(){
+        // Count td.filesize and compare to total rows
+        let filesizes = document.querySelectorAll('td.filesize').length;
+        let ages      = document.querySelectorAll('td.age').length;
+        if(filesizes === ages){
+            if(DEBUG_MODE) console.info(`Good empty check: ${filesizes} of ${ages}`);
+        } else {
+            if(DEBUG_MODE) console.info(`Bad empty check: ${filesizes} of ${ages}. Repainting`);
+
+        }
+        // Count non-empty td.filesize and compare to number of files from response
+
+        if(DEBUG_MODE) console.info(`Say something...`);
     }
 })();
