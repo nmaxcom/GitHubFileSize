@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub fileSize viewer
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      1.0.0
 // @description  Show the file size next to it on the website
 // @author       nmaxcom
 // @match        https://*.github.com/*
@@ -10,7 +10,8 @@
 
 
 (function(){
-    var textColor = '#6a737d';
+    // var textColor = '#6a737d'; // Default github style
+    var textColor = '#888'; // dark github style
     styleUp();
 
     var origXHROpen               = XMLHttpRequest.prototype.open;
@@ -115,8 +116,12 @@
                 for(var cellnum in nametds){
                     if(nametds.hasOwnProperty(cellnum)){
                         if(JSONelements[i].name === nametds[cellnum].innerHTML){
-                            if(JSONelements[i].type === 'file')
-                                nametds[cellnum].parentNode.parentNode.nextSibling.innerHTML = (JSONelements[i].size / 1024).toFixed(2) + ' KB';
+                            if(JSONelements[i].type === 'file'){
+                                var sizeNumber  = (JSONelements[i].size / 1024).toFixed(0);
+                                //sizeNumber = sizeNumber < 1 ? '>1' : sizeNumber;
+                                sizeNumber = sizeNumber < 1 ? JSONelements[i].size + ' B' : sizeNumber + ' KB';
+                                nametds[cellnum].parentNode.parentNode.nextSibling.innerHTML = sizeNumber;
+                            }
                             continue toploop;
                         }
                     }
