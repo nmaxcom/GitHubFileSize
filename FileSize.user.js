@@ -8,6 +8,7 @@
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
+// TODO: try document.addEventListener("pjax:start", function(){...}) and pjax:end as triggers
 (function(){
     /****************
      * Options:
