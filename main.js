@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         GitHub fileSize viewer
+// @name         GitHub FileSize Viewer
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
+// @version      0.9.12
 // @description  Show the file size next to it on the website
 // @author       nmaxcom
 // @match        https://*.github.com/*
@@ -16,8 +16,8 @@
     const SHOW_BYTES = false; // false: always KB, i.e. '>1 KB', true: i.e. '180 B' when less than 1 KB
     /****************/
 
-    // var textColor = '#6a737d'; // Default github style
-    var textColor = '#888'; // dark github style
+    var textColor = '#6a737d'; // Default github style
+    // var textColor = '#888'; // my dark github style
     createStyles();
 
     var origXHROpen               = XMLHttpRequest.prototype.open;
@@ -95,16 +95,15 @@
     }
 
     /**
-     * - Directories get new cell too
+     * - Directories get new cellmate too
      *
      */
     function insertBlankCells(){
-        var i, len;
         var filenameCells = document.querySelectorAll('tr[class~="js-navigation-item"] > td.content');
-        for(i = 0, len = filenameCells.length; i < len; i++){
-            var tmp       = document.createElement('td');
-            tmp.className = 'filesize';
-            filenameCells[i].parentNode.insertBefore(tmp, filenameCells[i].nextSibling);
+        for(var i = 0, len = filenameCells.length; i < len; i++){
+            var newtd       = document.createElement('td');
+            newtd.className = 'filesize';
+            filenameCells[i].parentNode.insertBefore(newtd, filenameCells[i].nextSibling);
         }
         if(DEBUG_MODE) console.info(`Inserted ${i} cells`);
     }
@@ -112,8 +111,6 @@
     /**
      * If we get the data, we insert it carefully so each filename gets matched
      * with the correct filesize.
-     * - TODO: We'll probably run this function twice to avoid losing one or two rows, so
-     *   we will have to check first if our cell exists there already or not.
      */
     function fillTheBlanks(JSONelements){
         if(!document.querySelectorAll('td.filesize').length){
@@ -130,7 +127,7 @@
                             if(SHOW_BYTES){
                                 sizeNumber = sizeNumber < 1 ? JSONelements[i].size + ' B' : sizeNumber + ' KB';
                             } else {
-                                sizeNumber = sizeNumber < 1 ? '>1 KB' : sizeNumber + ' KB';
+                                sizeNumber = sizeNumber < 1 ? '> 1 KB' : sizeNumber + ' KB';
                             }
                             nametds[cellnum].parentNode.parentNode.nextSibling.innerHTML = sizeNumber;
                         }
@@ -170,7 +167,6 @@
      * Con este regex capturamos del título  \w+(.*?)\sat\s(.*?)\s.*?(\w+)\/(\w+)
      * 1) dir path, 2) branch, 3) owner, 4) repo
      * Ese regex no funciona en el root
-     * @returns {object}
      */
     function setVars(){
         var title  = document.title;
@@ -196,6 +192,7 @@
      * Sometimes, even though data has been correctly recieved, the DOM doesn't play well
      * for whatever reason. This function will quickly check if the data is indeed
      * there and if it's not will repaint the data again with the original functions.
+     * TODO: finish this part
      */
     function recheckAndFix(){
         // Count td.filesize and compare to total rows
