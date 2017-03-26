@@ -14,7 +14,7 @@
     /****************
      * Options:
      ****************/
-    const DEBUG_MODE = true; // in production mode should be false
+    const DEBUG_MODE = false; // in production mode should be false
     const SHOW_BYTES = false; // false: always KB, i.e. '>1 KB', true: i.e. '180 B' when less than 1 KB
     /****************/
 
@@ -116,7 +116,7 @@
      */
     function fillTheBlanks(JSONelements){
         if(!document.querySelectorAll('td.filesize').length){
-            debugger;
+            if(DEBUG_MODE) debugger;
         }
         var nametds = document.querySelectorAll('tr[class~="js-navigation-item"] > td.content a');
         var i, len;
