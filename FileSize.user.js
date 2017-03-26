@@ -8,7 +8,8 @@
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
-// TODO: try document.addEventListener("pjax:start", function(){...}) and pjax:end as triggers
+// TODO: try document.addEventListener("pjax:start", function(){...}) and pjax:end as load triggers
+// TODO: https://www.sitepoint.com/10-ways-minimize-reflows-improve-performance/
 (function(){
     /****************
      * Options:
