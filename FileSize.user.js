@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub FileSize Viewer
 // @namespace    https://github.com/nmaxcom/
-// @version      0.9.12
+// @version      0.9.13
 // @description  Show the file size next to it on the GitHub file explorer
 // @author       nmaxcom
 // @homepage     https://github.com/nmaxcom/GitHubFileSize
@@ -21,14 +21,21 @@
      ****************/
     const DEBUG_MODE = true; // in production mode should be false
     const SHOW_BYTES = true; // false: always KB, i.e. '>1 KB', true: i.e. '180 B' when less than 1 KB
-    const TEXTCOLOR = '#6a737d'; // Default github style
+    const TEXT_COLOR = '#6a737d'; // Default github style
     /****************/
 
     if (DEBUG_MODE) console.log(`%cStart: ${document.title}`, 'color:white;background-color:#20A6E8;padding:3px');
 
-    let vars = {},
-        response;
-    tableCheckandGo();
+    const target = document.querySelector('table.files');
+    let vars = {};
+
+    /**
+     * Starting condition: the pjax load being successful or this is a regular page load
+     */
+    document.addEventListener('pjax:success', () => {
+        tableCheckandGo();
+    });
+    window.onload = tableCheckandGo();
 
     /**
      * Order of business:
@@ -39,12 +46,11 @@
      */
 
     function tableCheckandGo() {
-        if (document.querySelector('table.files')) {
+        if (target) {
             createStyles(); // Prepare the small CSS for the size info
             if (setVars()) {
                 callGitHubPromise()
                     .then(resp => {
-                        response = resp;
                         if (DEBUG_MODE) console.info('GitHub call went through: \n' + resp.responseText);
                         insertBlankCells();
                         fillTheBlanks(JSON.parse(resp.responseText));
@@ -134,17 +140,17 @@
     }
 
     function createStyles() {
-        const css = `td.filesize { color: ${TEXTCOLOR}; text-align: right; padding-right: 50px !important; } table.files td.message { max-width: 250px !important;`;
+        const css = `td.filesize { color: ${TEXT_COLOR}; text-align: right; padding-right: 50px !important; } table.files td.message { max-width: 250px !important;`;
         const head = document.head || document.getElementsByTagName('head')[0];
-        const style = document.createElement('style');
+        const styleBlock = document.createElement('style');
 
-        style.type = 'text/css';
-        if (style.styleSheet) {
-            style.styleSheet.cssText = css;
+        styleBlock.type = 'text/css';
+        if (styleBlock.styleSheet) {
+            styleBlock.styleSheet.cssText = css;
         } else {
-            style.appendChild(document.createTextNode(css));
+            styleBlock.appendChild(document.createTextNode(css));
         }
-        head.appendChild(style);
+        head.appendChild(styleBlock);
     }
 
     /**
