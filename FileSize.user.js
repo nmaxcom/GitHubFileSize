@@ -21,19 +21,10 @@
      ****************/
     const DEBUG_MODE = true; // in production mode should be false
     const SHOW_BYTES = true; // false: always KB, i.e. '>1 KB', true: i.e. '180 B' when less than 1 KB
-    const textColor = '#6a737d'; // Default github style
+    const TEXTCOLOR = '#6a737d'; // Default github style
     /****************/
 
-    createStyles(); // Prepare the small CSS for the size info
-
-    const origXHROpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = () => {
-        this.addEventListener('loadend', () => {
-            if (DEBUG_MODE) console.log(`%cStart: ${document.title}`, 'color:white;background-color:#20A6E8;padding:3px');
-            tableCheckandGo();
-        });
-        origXHROpen.apply(this, arguments);
-    };
+    if (DEBUG_MODE) console.log(`%cStart: ${document.title}`, 'color:white;background-color:#20A6E8;padding:3px');
 
     let vars = {},
         response;
@@ -49,19 +40,18 @@
 
     function tableCheckandGo() {
         if (document.querySelector('table.files')) {
+            createStyles(); // Prepare the small CSS for the size info
             if (setVars()) {
-                var callPromise = callGitHub();
-                callPromise
+                callGitHubPromise()
                     .then(resp => {
                         response = resp;
-                        if (DEBUG_MODE) console.info('GitHub call went through');
-                        if (DEBUG_MODE) console.info(resp.responseText);
+                        if (DEBUG_MODE) console.info('GitHub call went through: \n' + resp.responseText);
                         insertBlankCells();
                         fillTheBlanks(JSON.parse(resp.responseText));
                         recheckAndFix();
                     })
                     .catch(fail => {
-                        if (DEBUG_MODE) console.error(fail);
+                        if (DEBUG_MODE) console.error(`Fail!:${fail}`);
                     });
             } else {
                 if (DEBUG_MODE) console.info('setVars() failed. Vars: ', vars);
@@ -74,8 +64,8 @@
     /**
      * API call
      */
-    function callGitHub() {
-        return new Promise((resolve, reject)=> {
+    function callGitHubPromise() {
+        return new Promise((resolve, reject) => {
             // I'm forced to use GM_xmlhttpRequest to avoid Same Origin Policy issues
             GM_xmlhttpRequest({
                 method: 'GET',
@@ -121,7 +111,8 @@
         const nametds = document.querySelectorAll('tr[class~="js-navigation-item"] > td.content a');
         var i, len;
         toploop: for (i = 0, len = JSONelements.length; i < len; i++) {
-            for (const cellnum in nametds) { // TODO: for .. of?
+            for (const cellnum in nametds) {
+                // TODO: for .. of?
                 if (nametds.hasOwnProperty(cellnum) && JSONelements[i].name === nametds[cellnum].innerHTML) {
                     if (JSONelements[i].type === 'file') {
                         let sizeNumber = (JSONelements[i].size / 1024).toFixed(0);
@@ -143,7 +134,7 @@
     }
 
     function createStyles() {
-        const css = `td.filesize { color: ${textColor}; text-align: right; padding-right: 50px !important; } table.files td.message { max-width: 250px !important;`;
+        const css = `td.filesize { color: ${TEXTCOLOR}; text-align: right; padding-right: 50px !important; } table.files td.message { max-width: 250px !important;`;
         const head = document.head || document.getElementsByTagName('head')[0];
         const style = document.createElement('style');
 
@@ -198,7 +189,6 @@
             if (DEBUG_MODE) console.info(`Bad empty check: ${filesizes} of ${ages}. Repainting`);
         }
         // Count non-empty td.filesize and compare to number of files from response
-
-        if (DEBUG_MODE) console.info(`Say something...`);
+        // if (DEBUG_MODE) console.info(`Say something...`);
     }
 })();
