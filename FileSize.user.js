@@ -27,15 +27,20 @@
 
     if (DEBUG_MODE) console.log(`%cStart: ${document.title}`, 'color:white;background-color:#20A6E8;padding:3px');
 
-    const target = document.querySelector('table.files');
+    const targetExists = () => {
+        return document.querySelector('table.files');
+    };
     let vars = {};
 
     /**
      * Starting condition: the pjax load being successful or this is a regular page load
      */
-    document.addEventListener('pjax:success', () => {
-        tableCheckandGo();
-    });
+
+    // waiting for pjax:success might be the reason why our results appear late. Will try with a setInterval
+    // document.addEventListener('pjax:success', () => {
+    //     tableCheckandGo();
+    // });
+    const intervalID = setInterval(() => {}, 200);
     window.onload = tableCheckandGo();
 
     /**
@@ -47,7 +52,7 @@
      */
 
     function tableCheckandGo() {
-        if (target) {
+        if (targetExists()) {
             createStyles(); // Prepare the small CSS for the size info
             if (setVars()) {
                 callGitHubPromise()
