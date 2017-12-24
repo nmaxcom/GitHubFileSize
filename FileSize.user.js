@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub FileSize Viewer
 // @namespace    https://github.com/nmaxcom/
-// @version      0.9.13
+// @version      0.9.15
 // @description  Show the file size next to it on the GitHub file explorer
 // @author       nmaxcom
 // @homepage     https://github.com/nmaxcom/GitHubFileSize
@@ -13,7 +13,6 @@
 // ==/UserScript==
 
 // TODO: https://www.sitepoint.com/10-ways-minimize-reflows-improve-performance/
-// TODO: find out why sometimes the cells (and the API call it seems) is made two or even three times!
 // TODO: doesn't work when a folder has a space %20 in it. Response is "Not Found"
 
 (function() {
@@ -30,18 +29,25 @@
     const targetExists = () => {
         return document.querySelector('table.files');
     };
-    let vars = {};
+    var vars = {},
+        intervalID;
 
     /**
      * Starting condition: the pjax load being successful or this is a regular page load
      */
 
     // waiting for pjax:success might be the reason why our results appear late. Will try with a setInterval
-    // document.addEventListener('pjax:success', () => {
-    //     tableCheckandGo();
-    // });
-    const intervalID = setInterval(() => {}, 200);
-    window.onload = tableCheckandGo();
+    document.addEventListener('pjax:complete', () => {
+        if(DEBUG_MODE) console.info('pjax:complete fired');
+        setTimer();
+    });
+    setTimer = () => {
+        if (intervalID) return;
+        intervalID = setInterval(() => {
+            if (targetExists()) tableCheckandGo();
+        }, 100);
+    };
+    window.onload = setTimer();
 
     /**
      * Order of business:
@@ -52,6 +58,7 @@
      */
 
     function tableCheckandGo() {
+        clearInterval(intervalID), (intervalID = null);
         if (targetExists()) {
             createStyles(); // Prepare the small CSS for the size info
             if (setVars()) {
