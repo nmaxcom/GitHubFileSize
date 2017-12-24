@@ -12,7 +12,6 @@
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
-// TODO: try document.addEventListener("pjax:start", function(){...}) and pjax:end as load triggers
 // TODO: https://www.sitepoint.com/10-ways-minimize-reflows-improve-performance/
 // TODO: find out why sometimes the cells (and the API call it seems) is made two or even three times!
 (function() {
