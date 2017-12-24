@@ -14,6 +14,8 @@
 
 // TODO: https://www.sitepoint.com/10-ways-minimize-reflows-improve-performance/
 // TODO: find out why sometimes the cells (and the API call it seems) is made two or even three times!
+// TODO: doesn't work when a folder has a space %20 in it. Response is "Not Found"
+
 (function() {
     /****************
      * Options:
