@@ -14,6 +14,7 @@
 
 // TODO: https://www.sitepoint.com/10-ways-minimize-reflows-improve-performance/
 // TODO: doesn't work when a folder has a space %20 in it. Response is "Not Found"
+// TODO: check if the size is already there before acting. If it's loaded by the cached it adds copies
 
 (function() {
     /****************
